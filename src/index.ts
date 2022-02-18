@@ -99,7 +99,8 @@ function getTimesForDay(
   );
 
   // This loop could be avoided perhaps by doing modulus on the slotInterval, and finding the next possible slot based on a ceiling'd minimumStart, however one would have to also take into account the day.open, which could be any weird time.
-
+  // I originally in my brain thought it would be helpful to return a list of time slots for a day, which this could be changed to do easily.
+  // The performance overhead of a tiny loop is negligible and I think this is more intuitive to read
   for (
     let start = arbitraryDate(day.open);
     start < close;

@@ -1,4 +1,4 @@
-import { addMinutes } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
 import { IsoDayString, LocalParts, OpeningTimes, Space, Time } from "./types";
 
 // This didn't need to be configurable but I would put it on the Space object
@@ -75,7 +75,7 @@ function timeFromDate(date: Date): Time {
 }
 
 /**
- * Find the soonest open slots for current day.
+ * Find the soonest open slots for current day. This function is effectively tz unaware.
  * @param space The space to fetch the availability for
  * @param parts A LocalParts object that represents the current time in local form
  * @param slotInterval How frequent are our slots
@@ -91,21 +91,26 @@ function getTimesForDay(
 
   if (!day?.open || !day?.close) return {};
 
-  let currentSlot = arbitraryDate(day.open);
   const close = arbitraryDate(day.close);
 
-  const startTime = addMinutes(arbitraryDate(parts), space.minimumNotice ?? 0);
-  let open: Time | undefined;
+  const minimumStart = addMinutes(
+    arbitraryDate(parts),
+    space.minimumNotice ?? 0
+  );
 
-  while (currentSlot < close) {
-    if (currentSlot >= startTime) {
-      open = timeFromDate(currentSlot);
+  // This loop could be avoided perhaps by doing modulus on the slotInterval, and finding the next possible slot based on a ceiling'd minimumStart, however one would have to also take into account the day.open, which could be any weird time.
+
+  for (
+    let start = arbitraryDate(day.open);
+    start < close;
+    start = addMinutes(start, slotInterval)
+  ) {
+    if (start >= minimumStart) {
       return {
         close: day.close,
-        open,
+        open: timeFromDate(start),
       };
     }
-    currentSlot = addMinutes(currentSlot, slotInterval);
   }
 
   return {};
@@ -124,13 +129,18 @@ export const fetchAvailability = (
 ): Record<string, OpeningTimes> => {
   // You could build this immutably with a reduce, but it is needless here.
   const availablity: Record<string, OpeningTimes> = {};
-  let daysLeft = numberOfDays;
 
-  while (daysLeft > 0) {
-    const parts = getLocalDateTimeParts(now, space.timeZone);
+  for (let offset = 0; offset < numberOfDays; offset++) {
+    const parts = getLocalDateTimeParts(addDays(now, offset), space.timeZone);
+
+    // Subsequent days do not need to take into account current time
+    if (offset !== 0) {
+      parts.hour = 0;
+      parts.minute = 0;
+    }
+
     const times = getTimesForDay(space, parts, SLOT_LENGTH);
     availablity[`${parts.year}-${parts.month}-${parts.day}`] = times;
-    daysLeft -= 1;
   }
 
   return availablity;

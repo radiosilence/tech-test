@@ -18,3 +18,14 @@ export interface Space {
   /** The IANA timezone name of this space. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones*/
   timeZone: string;
 }
+
+export type IsoDayString = "1" | "2" | "3" | "4" | "5" | "6" | "7";
+
+export interface LocalParts {
+  hour: number;
+  minute: number;
+  year: string;
+  month: string;
+  day: string;
+  weekday: IsoDayString;
+}

@@ -1,9 +1,9 @@
 import { addMinutes } from "date-fns";
-import { OpeningTimes, Space } from "./types";
+import { IsoDayString, LocalParts, OpeningTimes, Space } from "./types";
 
 const SLOT_LENGTH = 15;
 
-type IsoDayString = "1" | "2" | "3" | "4" | "5" | "6" | "7";
+// Baffles me that you can't do weekday: "numeric"...either way we are fixing locale for format to en-GB so we can rely on these names.
 const longIsoToNumeric: Record<string, IsoDayString> = {
   Monday: "1",
   Tuesday: "2",
@@ -14,19 +14,13 @@ const longIsoToNumeric: Record<string, IsoDayString> = {
   Sunday: "7",
 };
 
-interface LocalParts {
-  hour: number;
-  minute: number;
-  year: string;
-  month: string;
-  day: string;
-  weekday: IsoDayString;
-}
-
-export function getLocalDateTimeParts(
-  date: Date,
-  timeZone: string
-): LocalParts {
+/**
+ * Take a Date from anywhere and given a timezone, return localised parts.
+ * @param date Date to find parts for, any timezone.
+ * @param timeZone IANA timezone that we want to localise to
+ * @returns a LocalParts object representing the parts of the date we will need
+ */
+function getLocalDateTimeParts(date: Date, timeZone: string): LocalParts {
   const formatter = new Intl.DateTimeFormat("en-GB", {
     timeZone,
     hour: "numeric",
@@ -60,12 +54,22 @@ interface Time {
   minute: number;
 }
 
+/**
+ * Get an arbitrary UTC date to do same-day time based operations and comparisons
+ * @param Time a time object
+ * @returns a Date, with fixed time.
+ */
 function arbitraryDate({ hour, minute }: Time) {
-  // We use an arbitrary date to do time based operations and comparisons
+  //
   // This happens to be my mum's birthday :)
   return new Date(Date.UTC(1954, 4, 22, hour, minute));
 }
 
+/**
+ * Quick utility to get a Time from a Date object
+ * @param date date to get Time object
+ * @returns Time object
+ */
 function timeFromDate(date: Date) {
   return {
     hour: date.getUTCHours(),
